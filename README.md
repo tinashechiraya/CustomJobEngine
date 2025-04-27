@@ -1,6 +1,3 @@
-Got it — you want a clean, **developer-friendly** `README.md` for your custom background job runner.  
-I'll make it professional but still simple and straightforward, covering:
-
 - **Overview**
 - **Setup**
 - **Allowed Jobs**
@@ -10,11 +7,6 @@ I'll make it professional but still simple and straightforward, covering:
 - **Example Usage**
 - **Final notes**  
 
----
-
-Here’s your full `README.md` draft:
-
----
 
 # Custom Background Job Runner
 
