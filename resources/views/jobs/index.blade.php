@@ -130,50 +130,50 @@
 
     <!-- Modal for Dispatch Form -->
     <div class="modal fade" id="dispatchModal" tabindex="-1" aria-labelledby="dispatchModalLabel" aria-hidden="true">
-  <div class="modal-dialog">
-    <div class="modal-content">
-      <form id="modalDispatchForm" method="POST" action="">
-        @csrf
-        <div class="modal-header">
-          <h5 class="modal-title" id="dispatchModalLabel">Dispatch Job</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        <div class="modal-dialog">
+            <div class="modal-content">
+            <form id="modalDispatchForm" method="POST" action="">
+                @csrf
+                <div class="modal-header">
+                <h5 class="modal-title" id="dispatchModalLabel">Dispatch Job</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                
+                <!-- Hidden Class Field -->
+                <input type="hidden" name="class" id="modalClassInput">
+                
+                <!-- Method Dropdown -->
+                <div class="mb-3">
+                    <label for="modalMethodSelect">Method</label>
+                    <select class="form-select" name="method" id="modalMethodSelect">
+                    <!-- Dynamically filled with methods -->
+                    </select>
+                </div>
+
+                <!-- Delay and Priority Inputs -->
+                <div class="mb-3">
+                    <label>Delay (seconds)</label>
+                    <input type="number" name="delay" class="form-control" min="0">
+                </div>
+
+                <div class="mb-3">
+                    <label>Priority</label>
+                    <input type="number" name="priority" class="form-control">
+                </div>
+
+                <!-- Dynamic Parameter Fields -->
+                <div id="modalParamsContainer" class="d-flex flex-column gap-2"></div>
+
+                </div>
+                <div class="modal-footer">
+                <button type="submit" class="btn btn-success">Confirm Dispatch</button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                </div>
+            </form>
+            </div>
         </div>
-        <div class="modal-body">
-          
-          <!-- Hidden Class Field -->
-          <input type="hidden" name="class" id="modalClassInput">
-          
-          <!-- Method Dropdown -->
-          <div class="mb-3">
-            <label for="modalMethodSelect">Method</label>
-            <select class="form-select" name="method" id="modalMethodSelect">
-              <!-- Dynamically filled with methods -->
-            </select>
-          </div>
-
-          <!-- Delay and Priority Inputs -->
-          <div class="mb-3">
-            <label>Delay (seconds)</label>
-            <input type="number" name="delay" class="form-control" min="0">
-          </div>
-
-          <div class="mb-3">
-            <label>Priority</label>
-            <input type="number" name="priority" class="form-control">
-          </div>
-
-          <!-- Dynamic Parameter Fields -->
-          <div id="modalParamsContainer" class="d-flex flex-column gap-2"></div>
-
         </div>
-        <div class="modal-footer">
-          <button type="submit" class="btn btn-success">Confirm Dispatch</button>
-          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-        </div>
-      </form>
-    </div>
-  </div>
-</div>
 
 
 
@@ -300,6 +300,39 @@ document.addEventListener('DOMContentLoaded', function () {
 });
 
 </script>
+
+<script>
+    function capitalizeFirstLetter(string) {
+        return string.charAt(0).toUpperCase() + string.slice(1);
+    }
+
+    function checkJobStatus(jobId) {
+        fetch(`/jobs/${jobId}/status`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.status) {
+                    const statusElement = document.getElementById(`status-${jobId}`);
+                    if (statusElement) {
+                        statusElement.innerHTML = `<span class="badge bg-warning text-dark">${capitalizeFirstLetter(data.status)}</span>`;
+                    }
+
+                    // If the job is NOT completed, check again after 5 seconds
+                    if (data.status !== 'completed') {
+                        setTimeout(() => checkJobStatus(jobId), 5000);
+                    }
+                }
+            })
+            .catch(error => console.error('Error fetching job status:', error));
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        document.querySelectorAll('tr[id^="job-"]').forEach(row => {
+            const jobId = row.id.split('-')[1];
+            checkJobStatus(jobId);
+        });
+    });
+</script>
+
 
 
 

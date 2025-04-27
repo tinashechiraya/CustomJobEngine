@@ -8,6 +8,8 @@ use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Log;
 use Symfony\Component\Process\Process;
 use ReflectionClass;
+use Symfony\Component\Process\Exception\ProcessFailedException;
+
 
 class JobController extends Controller
 {
@@ -77,9 +79,13 @@ class JobController extends Controller
 
     protected function startBackgroundJobRunner()
     {
-        $process = new Process(['php', 'artisan', 'jobs:run']);
-        $process->start();
+        $command = 'nohup php artisan job:run > /dev/null 2>&1 &';
+        $process = Process::fromShellCommandline($command);
+        $process->setTimeout(null);
+        $process->disableOutput();
+        $process->run();
     }
+
 
     public function getJobStatus($id)
     {

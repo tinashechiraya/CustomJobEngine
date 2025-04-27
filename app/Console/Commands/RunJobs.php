@@ -14,20 +14,27 @@ class RunJobs extends Command
 
     public function handle()
     {
-        while (true) {
-            $job = JobQueue::where('status', 'pending')
-                ->where('run_at', '<=', now())
-                ->orderBy('priority', 'desc')
-                ->orderBy('run_at', 'asc')
-                ->first();
+        try {
+            while (true) {
+                $job = JobQueue::where('status', 'pending')
+                    ->where('run_at', '<=', now())
+                    ->orderBy('priority', 'desc')
+                    ->orderBy('run_at', 'asc')
+                    ->first();
 
-            if (!$job) {
-                break; // No more pending jobs
+                if (!$job) {
+                    break; // No more pending jobs
+                }
+
+                $this->runJob($job);
             }
-
-            $this->runJob($job);
+        } catch (\Throwable $e) {
+            Log::error('Error in JobQueue handle method: ' . $e->getMessage(), [
+                'exception' => $e,
+            ]);
         }
     }
+
 
     protected function runJob(JobQueue $job)
     {
@@ -49,7 +56,7 @@ class RunJobs extends Command
             }
 
             // Get the parameters from the job payload
-            $params = json_decode($job->payload, true);  // Decode the JSON payload into an array
+            $params = json_decode($job->payload, true);
 
             // Call the method with the decoded parameters
             call_user_func_array([$instance, $job->job_method], $params);

@@ -5,6 +5,7 @@
 - **Running Jobs**
 - **Retry Logic Configuration**
 - **Example Usage**
+- **Advanced features**
 - **Final notes**  
 
 
@@ -139,6 +140,8 @@ Run `handle` method without parameters:
 php run-job.php App\\Jobs\\SampleJobClass handle
 ```
 
+![Screenshot](proofOfConcept/CommandFromTerminal.png)
+
 ---
 
 ## 5. Retry Attempts and Delays
@@ -167,8 +170,12 @@ The runner logs output to:
 - **Successful execution logs:**  
   `/storage/logs/background_jobs.log`
 
+  ![Screenshot](proofOfConcept/logs.png)
+
 - **Failure and exception logs:**  
   `/storage/logs/background_jobs_errors.log`
+
+  ![Screenshot](proofOfConcept/errorLogs.png)
 
 ---
 
@@ -188,17 +195,105 @@ The runner logs output to:
 - Jobs should be designed to be **idempotent** (safe to retry).
 - You can modify or extend `run-job.php` if you want additional features like notifications, database job tracking, etc.
 
+
+
+# 📋 Custom Job Queue Dashboard
+
+
+## 🛠 How it Works
+
+### Dashboard (`jobs.index` view)
+![Screenshot](proofOfConcept/dashboard.png)
+
+- **Class Discovery**:  
+  All PHP classes located in `app/Jobs` are scanned. Each class's public methods (excluding constructors) are listed dynamically, along with their parameters.
+
+- **Job Dispatching**:  
+  Each method can be **dispatched** by clicking the `Dispatch` button, which triggers a **modal popup**.
+  ![Screenshot](proofOfConcept/dispatchActions.png)
+
+  In the popup:
+  - You can **enter job parameters** dynamically (if required by the method).
+  - You can **set job priority** (higher number = higher priority).
+  - You can **set a delay** (in seconds) before the job executes.
+
+- **Job Queue Table**:
+  - All queued jobs are listed with their current statuses: `pending`, `running`, `completed`, `failed`, or `cancelled`.
+  - 5 jobs are shown per page for easy navigation (pagination).
+
 ---
 
-# 📸 (Add your screenshots here)
+## 🚀 Dispatch Flow
 
-You can now add screenshots where needed to show:
-
-- CLI command examples
-- Job config example
-- Log output examples
+1. **Select a class/method** on the Dashboard.
+2. **Fill in parameters**, set **priority** and/or **delay**.
+3. **Submit** to queue the job.
+4. **Job is stored** in the `job_queues` table with `pending` status.
+5. **Background runner** is triggered using **Symfony Process**, starting a new background PHP process:
+   ```
+   nohup php artisan job:run > /dev/null 2>&1 &
+   ```
 
 ---
 
-Would you also want me to give you a **smaller version** (like a short quickstart) that you can put right after the main one if you want both a full and short readme? 📚  
-(It's good for people who just want a 1-minute "how to use" version.)
+## 🧠 RunJobs Artisan Command (`job:run`)
+
+- Continuously picks the **next available pending job** based on:
+  - **Highest priority first**.
+  - Then **earliest scheduled `run_at` time**.
+- **Processing Steps**:
+  1. Marks job as `running`.
+  2. Dynamically instantiates the class and calls the method using PHP Reflection.
+  3. Injects parameters from the stored JSON `payload`.
+  4. On success, updates job as `completed`.
+  5. On failure, updates job as `failed` with an error message.
+
+- **Cancellation Support**:  
+  If a job is marked as `is_cancelled`, it is skipped and marked as `cancelled`.
+
+---
+
+## 🧩 Components Summary
+
+| Component | Purpose |
+| :--- | :--- |
+| `JobController@showAvailableJobs` | Lists all job classes and methods on the dashboard |
+| `JobController@dispatchJob` | Queues a job with optional delay and priority |
+| `JobController@startBackgroundJobRunner` | Launches a background job runner using Symfony Process |
+| `JobController@getJobStatus` | Fetches status and retry count of a job via API |
+| `JobController@cancel` | Cancels a running job |
+| `RunJobs` Command | Background worker that processes jobs |
+
+---
+
+## 📂 Important Files
+
+- **Artisan Command**:  
+  - `app/Console/Commands/RunJobs.php`
+- **Job Controller**:  
+  - `app/Http/Controllers/JobController.php`
+- **Dashboard View**:  
+  - `resources/views/jobs/index.blade.php`
+- **Database Table**:  
+  - `job_queue`
+
+---
+
+## 🔥 Features
+
+- 🚀 Launch jobs dynamically with user-supplied parameters.
+- ⏳ Delay job execution by X seconds.
+- 🎯 Set priority for jobs.
+- 📈 Real-time status tracking.
+- 🔒 Job cancellation support.
+- ⚙️ Symfony Process integration for non-blocking background execution.
+
+---
+
+## 🧪 Example Workflow
+
+1. User selects `App\Jobs\SendEmail@sendWelcomeEmail`.
+2. Enters **parameters** like `userId`, `emailTemplateId`.
+3. Sets **priority** to 10 and **delay** to 60 seconds.
+4. Job is added to the queue, background worker starts.
+5. After 1 minute, the job runs, sends an email, and updates status to `completed`.
